@@ -1,2 +1,2 @@
-# Outreach-App
+# outreach-tracker
 LinkedIn Headhunt
