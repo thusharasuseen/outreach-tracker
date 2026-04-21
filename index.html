@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Outreach Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f5f3ef; --surface:#fff; --border:#e2ddd6; --border-strong:#c9c3b8;
+  --text:#1a1917; --muted:#7a756d; --faint:#b0aa9f;
+  --s1-bg:#f0ede8; --s1-txt:#5a5550; --s1-dot:#b0a898;
+  --s2-bg:#ddeaf8; --s2-txt:#1a4a80; --s2-dot:#4a8fd4;
+  --s3-bg:#fff0d4; --s3-txt:#7a4500; --s3-dot:#e89020;
+  --s4-bg:#d8f2e6; --s4-txt:#0d5c35; --s4-dot:#22a362;
+  --s5-bg:#fde8e0; --s5-txt:#7a2010; --s5-dot:#e04020;
+  --s6-bg:#ebe4fb; --s6-txt:#3d1a80; --s6-dot:#7c48d4;
+  --s7-bg:#1a1917; --s7-txt:#f5f3ef; --s7-dot:#555;
+  --th-bg:#ddeaf8; --th-txt:#1a4a80;
+  --tr-bg:#d8f2e6; --tr-txt:#0d5c35;
+  --te-bg:#fff0d4; --te-txt:#7a4500;
+  --td-bg:#ebe4fb; --td-txt:#3d1a80;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5}
+
+/* ── header ── */
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:54px;position:sticky;top:0;z-index:100}
+.logo{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;letter-spacing:.04em}
+.logo span{color:var(--muted)}
+.header-actions{display:flex;align-items:center;gap:10px}
+.sync-status{font-family:'DM Mono',monospace;font-size:11px;color:var(--faint);letter-spacing:.04em}
+.sync-status.ok{color:#22a362} .sync-status.err{color:#e04020} .sync-status.saving{color:#e89020}
+
+/* ── nav tabs ── */
+.nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;display:flex;gap:0}
+.nav-tab{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:12px 18px;border:none;background:none;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:all .15s;letter-spacing:.01em}
+.nav-tab:hover{color:var(--text)}
+.nav-tab.active{color:var(--text);border-bottom-color:var(--text)}
+
+/* ── main layout ── */
+main{max-width:940px;margin:0 auto;padding:28px 20px}
+.page{display:none} .page.active{display:block}
+
+/* ── setup modal ── */
+.modal-wrap{display:none;position:fixed;inset:0;background:rgba(26,25,23,.45);z-index:200;align-items:center;justify-content:center}
+.modal-wrap.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px 30px;max-width:500px;width:100%;margin:16px}
+.modal h2{font-size:16px;font-weight:500;margin-bottom:6px}
+.modal p{font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.6}
+.modal ol{font-size:13px;color:var(--muted);padding-left:18px;margin-bottom:18px;line-height:2}
+.modal ol a{color:#1a4a80}
+.modal-row{display:flex;gap:8px;align-items:end}
+
+/* ── stats ── */
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center}
+.stat-num{font-family:'DM Mono',monospace;font-size:26px;font-weight:500;line-height:1;margin-bottom:5px}
+.stat-lbl{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em}
+.progress-bar{height:3px;background:var(--border);border-radius:99px;overflow:hidden;margin-top:7px}
+.progress-fill{height:100%;border-radius:99px;background:var(--text);transition:width .3s}
+
+/* ── toolbar ── */
+.toolbar{display:flex;gap:10px;margin-bottom:18px;align-items:center;flex-wrap:wrap}
+.search-wrap{position:relative;flex:1;min-width:180px}
+.search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;opacity:.4;pointer-events:none}
+#search-inp{padding-left:32px;width:100%}
+.filter-group{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.filter-lbl{font-family:'DM Mono',monospace;font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;margin-right:3px}
+.fbtn{font-family:'DM Sans',sans-serif;font-size:12px;padding:5px 11px;border-radius:99px;border:1px solid var(--border);background:var(--surface);cursor:pointer;color:var(--muted);transition:all .12s}
+.fbtn:hover{border-color:var(--border-strong);color:var(--text)}
+.fbtn.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+
+/* ── add panel ── */
+.add-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:22px}
+.panel-title{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:13px}
+.form-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1.2fr;gap:9px;margin-bottom:9px}
+.form-row2{display:grid;grid-template-columns:1fr auto;gap:9px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.05em}
+
+/* ── inputs ── */
+input,select,textarea{font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:7px 10px;outline:none;transition:border-color .15s;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--border-strong);background:#fff}
+select{cursor:pointer}
+
+/* ── buttons ── */
+.btn-primary{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;background:var(--text);color:var(--bg);border:none;border-radius:7px;padding:7px 16px;cursor:pointer;white-space:nowrap;transition:opacity .15s;height:34px;align-self:end}
+.btn-primary:hover{opacity:.82}
+.btn-ghost{font-family:'DM Sans',sans-serif;font-size:12px;background:none;border:1px solid var(--border);border-radius:7px;padding:6px 12px;cursor:pointer;color:var(--muted);transition:all .12s}
+.btn-ghost:hover{border-color:var(--border-strong);color:var(--text)}
+
+/* ── contact cards ── */
+.contact-list{display:flex;flex-direction:column;gap:8px}
+.contact-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color .15s}
+.contact-card:hover{border-color:var(--border-strong)}
+.card-main{display:flex;align-items:center;gap:12px;padding:13px 15px;cursor:pointer}
+.avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:12px;font-weight:500;flex-shrink:0}
+.card-info{flex:1;min-width:0}
+.card-name{font-size:14px;font-weight:500;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.card-name a{font-family:'DM Mono',monospace;font-size:10px;color:var(--faint);text-decoration:none;letter-spacing:.04em}
+.card-name a:hover{color:var(--muted)}
+.card-sub{font-size:12px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-right{display:flex;align-items:center;gap:9px;flex-shrink:0}
+.type-tag{font-size:11px;font-weight:500;padding:2px 8px;border-radius:99px}
+.status-badge{font-family:'DM Mono',monospace;font-size:11px;font-weight:500;padding:3px 9px;border-radius:6px;white-space:nowrap}
+.date-txt{font-family:'DM Mono',monospace;font-size:11px;color:var(--faint);white-space:nowrap}
+
+/* ── card expanded ── */
+.card-body{display:none;border-top:1px solid var(--border)}
+.card-body.open{display:block}
+.card-stages{padding:10px 15px;display:flex;gap:5px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--border)}
+.stage-lbl{font-family:'DM Mono',monospace;font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;margin-right:3px}
+.sbtn{font-family:'DM Sans',sans-serif;font-size:11px;padding:4px 9px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .12s;display:flex;align-items:center;gap:5px}
+.sbtn:hover{border-color:var(--border-strong);color:var(--text)}
+.sbtn.active{font-weight:500}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.del-btn{font-family:'DM Mono',monospace;font-size:10px;color:var(--faint);background:none;border:none;cursor:pointer;margin-left:auto;padding:4px 7px;border-radius:5px;letter-spacing:.03em;transition:all .12s}
+.del-btn:hover{color:#c0392b;background:#fde8e0}
+.card-edit{padding:12px 15px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.card-edit .field-full{grid-column:1/-1}
+.card-note-row{padding:0 15px 12px;display:flex;gap:8px;align-items:start}
+.note-inp{font-family:'DM Sans',sans-serif;font-size:12px;color:var(--muted);background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 10px;resize:none;min-height:32px;overflow:hidden;width:100%}
+.card-templates-btn{font-family:'DM Mono',monospace;font-size:10px;color:var(--faint);background:none;border:1px solid var(--border);cursor:pointer;margin-top:4px;padding:3px 9px;border-radius:5px;letter-spacing:.03em;white-space:nowrap;transition:all .12s;flex-shrink:0}
+.card-templates-btn:hover{color:var(--muted);border-color:var(--border-strong)}
+
+/* ── empty ── */
+.empty-state{text-align:center;padding:60px 20px;color:var(--faint);font-family:'DM Mono',monospace;font-size:13px;letter-spacing:.04em}
+
+/* ── TEMPLATES PAGE ── */
+.tpl-layout{display:grid;grid-template-columns:200px 1fr;gap:20px;min-height:500px}
+.tpl-sidebar{display:flex;flex-direction:column;gap:3px}
+.tpl-nav-btn{font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;border-radius:8px;border:none;background:transparent;cursor:pointer;color:var(--muted);text-align:left;transition:all .12s}
+.tpl-nav-btn:hover{background:var(--border);color:var(--text)}
+.tpl-nav-btn.active{background:var(--text);color:var(--bg);font-weight:500}
+.tpl-nav-section{font-family:'DM Mono',monospace;font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;padding:10px 12px 4px;margin-top:4px}
+.tpl-content{display:flex;flex-direction:column;gap:12px}
+.tpl-page{display:none} .tpl-page.active{display:flex;flex-direction:column;gap:12px}
+.tpl-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.tpl-card-head{padding:14px 16px 0}
+.tpl-pill{display:inline-block;font-size:11px;font-weight:500;padding:2px 9px;border-radius:99px;margin-bottom:6px}
+.tpl-pill-blue{background:#ddeaf8;color:#1a4a80} .tpl-pill-teal{background:#d8f2e6;color:#0d5c35}
+.tpl-pill-amber{background:#fff0d4;color:#7a4500} .tpl-pill-coral{background:#fde8e0;color:#7a2010}
+.tpl-card-head h3{font-size:14px;font-weight:500;margin-bottom:4px}
+.tpl-card-head p{font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6}
+.tpl-quote{font-size:11px;color:var(--faint);font-style:italic;padding:0 16px 10px;border-left:2px solid var(--border);margin:0 16px 10px;line-height:1.6}
+.msg-box{background:var(--bg);margin:0 16px;border-radius:7px;padding:12px 14px;font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;border-left:3px solid #4a8fd4}
+.msg-box.teal{border-left-color:#22a362} .msg-box.amber{border-left-color:#e89020} .msg-box.coral{border-left-color:#e04020}
+.tpl-actions{padding:10px 16px 14px;display:flex;gap:8px;align-items:center}
+.copy-btn{font-family:'DM Mono',monospace;font-size:11px;padding:5px 12px;cursor:pointer;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .12s;letter-spacing:.03em}
+.copy-btn:hover{background:var(--bg);border-color:var(--border-strong);color:var(--text)}
+.char-count{font-family:'DM Mono',monospace;font-size:10px;color:var(--faint)}
+
+/* ── settings ── */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.settings-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
+.settings-card h3{font-size:14px;font-weight:500;margin-bottom:5px}
+.settings-card p{font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6}
+.settings-card a{color:#1a4a80}
+.token-row{display:flex;gap:8px}
+.token-inp{font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.02em;flex:1}
+.status-row{display:flex;align-items:center;gap:8px;margin-top:10px}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--faint)}
+.status-dot.ok{background:#22a362} .status-dot.err{background:#e04020} .status-dot.warn{background:#e89020}
+.status-msg{font-size:12px;color:var(--muted)}
+
+/* ── mini template modal ── */
+.tpl-modal-wrap{display:none;position:fixed;inset:0;background:rgba(26,25,23,.5);z-index:300;align-items:center;justify-content:center}
+.tpl-modal-wrap.open{display:flex}
+.tpl-modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:0;max-width:580px;width:100%;margin:16px;max-height:90vh;overflow-y:auto}
+.tpl-modal-head{padding:18px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface)}
+.tpl-modal-head h2{font-size:15px;font-weight:500}
+.tpl-modal-close{background:none;border:none;cursor:pointer;font-size:18px;color:var(--muted);padding:0 4px;line-height:1}
+.tpl-modal-tabs{display:flex;gap:3px;padding:10px 20px;border-bottom:1px solid var(--border)}
+.tpl-modal-tab{font-size:12px;padding:4px 10px;border-radius:99px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--muted);transition:all .12s}
+.tpl-modal-tab.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+.tpl-modal-body{padding:16px 20px;display:flex;flex-direction:column;gap:12px}
+.tpl-modal-section{display:none} .tpl-modal-section.active{display:flex;flex-direction:column;gap:10px}
+
+@media(max-width:640px){
+  .form-grid{grid-template-columns:1fr 1fr}
+  .stats-row{grid-template-columns:repeat(3,1fr)}
+  .tpl-layout{grid-template-columns:1fr}
+  .tpl-sidebar{flex-direction:row;flex-wrap:wrap}
+  .settings-grid{grid-template-columns:1fr}
+  .card-edit{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">outreach<span>.tracker</span></div>
+  <div class="header-actions">
+    <span class="sync-status" id="sync-status">not connected</span>
+    <button class="btn-ghost" onclick="openSettings()">settings</button>
+  </div>
+</header>
+
+<nav class="nav">
+  <button class="nav-tab active" onclick="showPage('tracker',this)">Tracker</button>
+  <button class="nav-tab" onclick="showPage('templates',this)">Templates</button>
+  <button class="nav-tab" onclick="showPage('settings',this)">Settings</button>
+</nav>
+
+<!-- ══════════ TRACKER PAGE ══════════ -->
+<main>
+<div id="page-tracker" class="page active">
+
+  <div class="stats-row" id="stats"></div>
+
+  <div class="add-panel">
+    <div class="panel-title">Add contact</div>
+    <div class="form-grid">
+      <div class="field"><label>Full name</label><input id="inp-name" placeholder="e.g. Sarah Chen" autocomplete="off"></div>
+      <div class="field"><label>Role / title</label><input id="inp-role" placeholder="e.g. Hiring Manager"></div>
+      <div class="field"><label>Company</label><input id="inp-company" placeholder="e.g. GHD"></div>
+      <div class="field"><label>Type</label>
+        <select id="inp-type">
+          <option value="hiring">Hiring manager</option>
+          <option value="recruiter">Recruiter / HR</option>
+          <option value="engineer">Engineer / employee</option>
+          <option value="decision">Decision maker</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row2">
+      <div class="field"><label>LinkedIn URL (optional)</label><input id="inp-li" type="url" placeholder="https://linkedin.com/in/..."></div>
+      <button class="btn-primary" onclick="addContact()">+ Add</button>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="8.5" cy="8.5" r="5.5"/><path d="M13 13l3.5 3.5"/>
+      </svg>
+      <input id="search-inp" placeholder="Search by name, company, role..." oninput="render()">
+    </div>
+    <div class="filter-group">
+      <span class="filter-lbl">Stage</span>
+      <button class="fbtn active" onclick="setFilter(this,'all')">All</button>
+      <button class="fbtn" onclick="setFilter(this,'connected')">Step 1</button>
+      <button class="fbtn" onclick="setFilter(this,'accepted')">Accepted</button>
+      <button class="fbtn" onclick="setFilter(this,'step2')">Step 2</button>
+      <button class="fbtn" onclick="setFilter(this,'replied')">Replied</button>
+      <button class="fbtn" onclick="setFilter(this,'looping')">Looping</button>
+      <button class="fbtn" onclick="setFilter(this,'trident')">Trident</button>
+      <button class="fbtn" onclick="setFilter(this,'interview')">Interview</button>
+    </div>
+  </div>
+
+  <div class="contact-list" id="list"></div>
+</div>
+
+<!-- ══════════ TEMPLATES PAGE ══════════ -->
+<div id="page-templates" class="page">
+  <div class="tpl-layout">
+    <div class="tpl-sidebar">
+      <div class="tpl-nav-section">Framework</div>
+      <button class="tpl-nav-btn active" onclick="showTpl('overview',this)">Overview</button>
+      <div class="tpl-nav-section">By person type</div>
+      <button class="tpl-nav-btn" onclick="showTpl('hiring',this)">Hiring manager</button>
+      <button class="tpl-nav-btn" onclick="showTpl('recruiter',this)">Recruiter / HR</button>
+      <button class="tpl-nav-btn" onclick="showTpl('engineer',this)">Engineer / employee</button>
+      <button class="tpl-nav-btn" onclick="showTpl('decision',this)">Decision maker</button>
+    </div>
+    <div class="tpl-content" id="tpl-content"></div>
+  </div>
+</div>
+
+<!-- ══════════ SETTINGS PAGE ══════════ -->
+<div id="page-settings" class="page">
+  <div class="settings-grid">
+    <div class="settings-card">
+      <h3>GitHub Gist sync</h3>
+      <p>Your data syncs to a private GitHub Gist so it works across devices and persists on GitHub Pages. <a href="https://github.com/settings/tokens/new?description=outreach-tracker&scopes=gist" target="_blank">Create a token here</a> — enable the <strong>gist</strong> scope only.</p>
+      <div class="token-row">
+        <input type="password" class="token-inp" id="token-inp" placeholder="ghp_xxxxxxxxxxxx">
+        <button class="btn-primary" onclick="saveToken()">Save</button>
+      </div>
+      <div class="status-row">
+        <div class="status-dot" id="sync-dot"></div>
+        <span class="status-msg" id="sync-msg">No token saved</span>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-ghost" onclick="syncNow()">Sync now</button>
+        <button class="btn-ghost" onclick="exportData()">Export JSON</button>
+        <button class="btn-ghost" onclick="importData()">Import JSON</button>
+      </div>
+    </div>
+    <div class="settings-card">
+      <h3>How to deploy on GitHub Pages</h3>
+      <p>1. Create a new GitHub repo (e.g. <code>outreach-tracker</code>)<br>
+      2. Upload this HTML file as <code>index.html</code><br>
+      3. Go to <strong>Settings → Pages</strong>, set source to <strong>main branch</strong><br>
+      4. Visit <code>yourusername.github.io/outreach-tracker</code><br>
+      5. Paste your GitHub token in settings — data syncs via Gist automatically</p>
+    </div>
+    <div class="settings-card">
+      <h3>Data</h3>
+      <p>All contacts are stored in a private GitHub Gist (when token is set) and also cached in localStorage as a fallback. Clearing your token does not delete your Gist data.</p>
+      <button class="btn-ghost" style="margin-top:4px;color:#c0392b;border-color:#f5c4b3" onclick="clearAll()">Clear all local data</button>
+    </div>
+    <div class="settings-card">
+      <h3>Keyboard shortcuts</h3>
+      <p>
+        <code>Cmd/Ctrl + Enter</code> — add contact<br>
+        <code>/</code> — focus search<br>
+        <code>Esc</code> — clear search
+      </p>
+    </div>
+  </div>
+</div>
+</main>
+
+<!-- ══════════ TEMPLATE MINI-MODAL ══════════ -->
+<div class="tpl-modal-wrap" id="tpl-modal">
+  <div class="tpl-modal">
+    <div class="tpl-modal-head">
+      <h2 id="tpl-modal-title">Templates</h2>
+      <button class="tpl-modal-close" onclick="closeTplModal()">×</button>
+    </div>
+    <div class="tpl-modal-tabs" id="tpl-modal-tabs"></div>
+    <div class="tpl-modal-body" id="tpl-modal-body"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  DATA
+// ═══════════════════════════════════════════════
+const STAGES = [
+  {key:'connected', label:'Step 1 sent', dot:'var(--s1-dot)', bg:'var(--s1-bg)', txt:'var(--s1-txt)'},
+  {key:'accepted',  label:'Accepted',    dot:'var(--s2-dot)', bg:'var(--s2-bg)', txt:'var(--s2-txt)'},
+  {key:'step2',     label:'Step 2 sent', dot:'var(--s3-dot)', bg:'var(--s3-bg)', txt:'var(--s3-txt)'},
+  {key:'replied',   label:'Replied',     dot:'var(--s4-dot)', bg:'var(--s4-bg)', txt:'var(--s4-txt)'},
+  {key:'looping',   label:'Looping',     dot:'var(--s5-dot)', bg:'var(--s5-bg)', txt:'var(--s5-txt)'},
+  {key:'trident',   label:'Trident',     dot:'var(--s6-dot)', bg:'var(--s6-bg)', txt:'var(--s6-txt)'},
+  {key:'interview', label:'Interview',   dot:'var(--s7-dot)', bg:'var(--s7-bg)', txt:'var(--s7-txt)'},
+];
+const TYPE_META = {
+  hiring:   {label:'Hiring manager',     bg:'var(--th-bg)', txt:'var(--th-txt)'},
+  recruiter:{label:'Recruiter / HR',     bg:'var(--tr-bg)', txt:'var(--tr-txt)'},
+  engineer: {label:'Engineer / employee',bg:'var(--te-bg)', txt:'var(--te-txt)'},
+  decision: {label:'Decision maker',     bg:'var(--td-bg)', txt:'var(--td-txt)'},
+};
+
+// Templates — exact video transcript language
+const TEMPLATES = {
+  hiring: {
+    label: 'Hiring manager',
+    steps: [
+      {
+        key:'step1', label:'Step 1 — Connect', pill:'tpl-pill-blue',
+        quote:'"Hi, name. I can see you\'re the hiring manager. Would be great to connect." — Milos, 8:16',
+        note:'300 char max. No pitch. Just a reason to accept.',
+        msg:`Hi [Name], I can see you're the hiring manager at [Company]. Would be great to connect.`,
+        charLimit:true
+      },
+      {
+        key:'step2', label:'Step 2 — After accepted', pill:'tpl-pill-teal',
+        quote:'"Thanks for connecting name. I\'m just about to submit an application. Wanted to ask, when it comes to successful hires, do you place more of an emphasis on soft skills or company culture fit?" — Milos, 9:18',
+        note:'Provide context + an easy-to-answer question. Do not sell yourself here.',
+        msg:`Thanks for connecting, [Name]. I'm just about to submit an application [for the [Role] at [Company]]. Wanted to ask — when it comes to successful hires, do you place more of an emphasis on soft skills or company culture fit?`,
+        boxClass:'teal'
+      },
+      {
+        key:'loop1', label:'Looping — "Apply online"', pill:'tpl-pill-amber',
+        quote:'"Thank you so much for coming back to me. I can confirm I\'ve applied now while I still have your attention — the soft skill question." — Milos, 11:11',
+        msg:`Thank you so much for coming back to me. I can confirm I've applied. Now while I still have your attention — the soft skills question. Would you say soft skills are more important, or would there be a personality trait that makes applicants more successful?`,
+        boxClass:'amber'
+      },
+      {
+        key:'loop2', label:'Looping — "No experience"', pill:'tpl-pill-amber',
+        quote:'"That\'s exactly why I\'ve reached out. I want to know what experience is required to be considered for this role." — Milos, 11:41',
+        msg:`That's exactly why I've reached out. I want to know what experience is required to be considered for this role, and what opportunity there could be to allow me to build that experience.`,
+        boxClass:'amber'
+      },
+      {
+        key:'loop3', label:'Looping — "Wrong person"', pill:'tpl-pill-amber',
+        quote:'"Who do you recommend that I reach out to?" — Milos, 12:05',
+        msg:`No problem at all. Who do you recommend that I reach out to?`,
+        boxClass:'amber'
+      },
+      {
+        key:'tri1', label:'Trident — Ask for call', pill:'tpl-pill-coral',
+        quote:'"Do you have 5 minutes to discuss my profile and if it\'s worthy of a recommendation?" — Milos, 12:39',
+        msg:`Thank you so much for your reply on the soft skills — I'm pleased to hear you say that. That's actually a strength of mine. Do you have 5 minutes to discuss my profile and if it's worthy of a recommendation?`,
+        boxClass:'coral'
+      },
+      {
+        key:'tri2', label:'Trident — Ask for name', pill:'tpl-pill-coral',
+        quote:'"No problem at all. You\'re a busy person. Who do you recommend that I reach out to who may have more time to have a meeting?" — Milos, 13:01',
+        msg:`No problem at all — you're a busy person. Who do you recommend I reach out to who may have more time to have a meeting?`,
+        boxClass:'coral'
+      },
+      {
+        key:'tri3', label:'Trident — Ask for intel', pill:'tpl-pill-coral',
+        quote:'"What advice could you give me to be taken more seriously when making applications, but more importantly, when reaching out to real decision makers?" — Milos, 13:20',
+        msg:`I appreciate that you get tons of applications and I want to know if I'm going to be the right fit. What advice could you give me to be taken more seriously when making applications, but more importantly, when reaching out to real decision makers?`,
+        boxClass:'coral'
+      },
+    ]
+  },
+  recruiter: {
+    label: 'Recruiter / HR',
+    steps: [
+      {key:'step1',label:'Step 1 — Connect',pill:'tpl-pill-blue',note:'300 chars max.',msg:`Hi [Name], I can see you're in talent acquisition at [Company]. Would be great to connect.`,charLimit:true},
+      {key:'step2',label:'Step 2 — After accepted',pill:'tpl-pill-teal',msg:`Thanks for connecting, [Name]. I'm just about to submit an application for the [Role] at [Company]. Wanted to ask — when it comes to successful hires, do you place more emphasis on soft skills or company culture fit?`,boxClass:'teal'},
+      {key:'loop1',label:'Looping — "Apply online"',pill:'tpl-pill-amber',msg:`Thank you so much for coming back to me. I can confirm I've applied. Now while I still have your attention — would you say soft skills are more important, or is there a personality trait that makes candidates more successful at [Company]?`,boxClass:'amber'},
+      {key:'loop2',label:'Looping — "No experience"',pill:'tpl-pill-amber',msg:`That's exactly why I've reached out. I want to know what experience is required to be considered for this role, and what opportunity there could be to allow me to build that experience.`,boxClass:'amber'},
+      {key:'loop3',label:'Looping — "Wrong person"',pill:'tpl-pill-amber',msg:`No problem at all. Who do you recommend that I reach out to?`,boxClass:'amber'},
+      {key:'tri1',label:'Trident — Ask for call',pill:'tpl-pill-coral',msg:`Thank you so much for your reply — I'm pleased to hear you say that. That's actually a strength of mine. Do you have 5 minutes to discuss my profile and if it's worthy of being put forward?`,boxClass:'coral'},
+      {key:'tri2',label:'Trident — Ask for name',pill:'tpl-pill-coral',msg:`No problem at all — you're a busy person. Who do you recommend I reach out to who may have more time to have a meeting?`,boxClass:'coral'},
+      {key:'tri3',label:'Trident — Ask for intel',pill:'tpl-pill-coral',msg:`I appreciate that you see a lot of candidates. What advice could you give me to be taken more seriously when making applications, but more importantly, when reaching out to real decision makers?`,boxClass:'coral'},
+    ]
+  },
+  engineer: {
+    label: 'Engineer / employee',
+    steps: [
+      {key:'step1',label:'Step 1 — Connect',pill:'tpl-pill-blue',note:'300 chars max.',msg:`Hi [Name], I can see you're a [Process/Chemical] Engineer at [Company]. Would be great to connect.`,charLimit:true},
+      {key:'step2',label:'Step 2 — After accepted',pill:'tpl-pill-teal',msg:`Thanks for connecting, [Name]. I'm exploring a role at [Company] and wanted to ask — from your experience there, do you find the team places more value on technical skills or how well someone fits the culture?`,boxClass:'teal'},
+      {key:'loop1',label:'Looping — Deflects / silence',pill:'tpl-pill-amber',msg:`That's exactly why I reached out to someone on the inside rather than just applying. I want to know what it actually takes to be considered — is there anything you'd recommend I highlight when reaching out to the hiring team?`,boxClass:'amber'},
+      {key:'loop2',label:'Looping — "Not in hiring"',pill:'tpl-pill-amber',msg:`No problem at all. Who do you recommend that I reach out to?`,boxClass:'amber'},
+      {key:'tri1',label:'Trident — Ask for call',pill:'tpl-pill-coral',msg:`Really appreciate your insight — that's helpful to hear. Do you have 5 minutes to discuss my profile and whether it might be worthy of a recommendation internally?`,boxClass:'coral'},
+      {key:'tri2',label:'Trident — Ask for name',pill:'tpl-pill-coral',msg:`No problem at all — you're busy. Who do you recommend I reach out to who may have more time to have a meeting?`,boxClass:'coral'},
+      {key:'tri3',label:'Trident — Ask for intel',pill:'tpl-pill-coral',msg:`I appreciate that. What advice could you give me to be taken more seriously when reaching out to real decision makers at [Company]?`,boxClass:'coral'},
+    ]
+  },
+  decision: {
+    label: 'Decision maker',
+    steps: [
+      {key:'step1',label:'Step 1 — Connect',pill:'tpl-pill-blue',note:'300 chars max.',msg:`Hi [Name], I can see you're leading the [engineering / operations] team at [Company]. Would be great to connect.`,charLimit:true},
+      {key:'step2',label:'Step 2 — After accepted',pill:'tpl-pill-teal',msg:`Thanks for connecting, [Name]. I'm looking at opportunities in [process / water / utilities engineering] and [Company] is at the top of my list. Wanted to ask — when it comes to bringing someone onto the team, do you place more emphasis on technical depth or how quickly someone adapts to the way the team works?`,boxClass:'teal'},
+      {key:'loop1',label:'Looping — "Not hiring"',pill:'tpl-pill-amber',msg:`That's exactly why I've reached out directly. I want to understand what experience and qualities would make someone the right fit when a role does open — and what I can do now to position myself for that.`,boxClass:'amber'},
+      {key:'loop2',label:'Looping — "Wrong person"',pill:'tpl-pill-amber',msg:`No problem at all. Who do you recommend that I reach out to?`,boxClass:'amber'},
+      {key:'tri1',label:'Trident — Ask for call',pill:'tpl-pill-coral',msg:`Really appreciate your reply — I'm glad to hear that. That's actually where I've built most of my experience. Do you have 5 minutes to discuss my profile and if it's worthy of a recommendation?`,boxClass:'coral'},
+      {key:'tri2',label:'Trident — Ask for name',pill:'tpl-pill-coral',msg:`No problem at all — you're a busy person. Who do you recommend I reach out to who may have more time to have a meeting?`,boxClass:'coral'},
+      {key:'tri3',label:'Trident — Ask for intel',pill:'tpl-pill-coral',msg:`I want to make sure I'm going to be the right fit. What advice could you give me to be taken more seriously when making applications and when reaching out to the right people?`,boxClass:'coral'},
+    ]
+  }
+};
+
+const OVERVIEW_HTML = `
+<div class="tpl-card">
+  <div class="tpl-card-head"><span class="tpl-pill tpl-pill-blue">From the video — 7:41</span><h3>Step 1 — The knock on the door (Add Note)</h3></div>
+  <div class="tpl-quote">"Hi, name. I can see you're the hiring manager. Would be great to connect. That's it. That's your knock on the door. Your knock isn't there to get them to hire you. It's there to get you accepted."</div>
+  <div class="tpl-card-head" style="padding-top:0"><p>Short. No selling. No CV. No pitch. Just a reason to accept. Keep under 300 characters.</p></div>
+</div>
+<div class="tpl-card">
+  <div class="tpl-card-head"><span class="tpl-pill tpl-pill-teal">From the video — 9:18</span><h3>Step 2 — Context + easy question</h3></div>
+  <div class="tpl-quote">"Thanks for connecting name. I'm just about to submit an application. Wanted to ask, when it comes to successful hires, do you place more of an emphasis on soft skills or company culture fit?"</div>
+  <div class="tpl-card-head" style="padding-top:0"><p>Ask a question. It makes them respond. Do not sell yourself here — "now's not the time to start selling yourself."</p></div>
+</div>
+<div class="tpl-card">
+  <div class="tpl-card-head"><span class="tpl-pill tpl-pill-amber">From the video — 10:59</span><h3>Looping — handling rejection</h3></div>
+  <div class="tpl-quote">"Please apply online → confirm you've applied, then loop back with the soft skill question."<br>"No experience → that's exactly why I've reached out."<br>"Not the right person → who do you recommend I reach out to?"</div>
+</div>
+<div class="tpl-card">
+  <div class="tpl-card-head"><span class="tpl-pill tpl-pill-coral">From the video — 12:26</span><h3>Trident — 3 paths from every reply</h3></div>
+  <div class="tpl-quote">"Ask for a 5-minute call → if no, ask for a name → if no, ask for intel about how to be taken more seriously."</div>
+  <div class="tpl-card-head" style="padding-top:0"><p>Every conversation has three possible outcomes. If you don't ask, you don't get. Work through all three before moving on.</p></div>
+</div>`;
+
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+let contacts = [];
+let activeFilter = 'all';
+let gistId = null;
+let ghToken = null;
+let syncTimer = null;
+let openCards = new Set();
+
+// ═══════════════════════════════════════════════
+//  STORAGE — localStorage + GitHub Gist
+// ═══════════════════════════════════════════════
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+
+function loadLocal(){
+  try{
+    const raw = lsGet('outreach-v3');
+    if(raw) contacts = JSON.parse(raw);
+    gistId  = lsGet('outreach-gist-id') || null;
+    ghToken = lsGet('outreach-gh-token') || null;
+    if(document.getElementById('token-inp')) document.getElementById('token-inp').value = ghToken||'';
+  }catch(e){ contacts=[]; }
+}
+
+function saveLocal(){
+  lsSet('outreach-v3', JSON.stringify(contacts));
+}
+
+function setSyncStatus(state, msg){
+  const el = document.getElementById('sync-status');
+  const dot = document.getElementById('sync-dot');
+  const msgEl = document.getElementById('sync-msg');
+  if(el){ el.textContent = msg; el.className = 'sync-status '+state; }
+  if(dot){ dot.className = 'status-dot '+(state==='ok'?'ok':state==='saving'?'warn':'err'); }
+  if(msgEl){ msgEl.textContent = msg; }
+}
+
+async function syncToGist(){
+  if(!ghToken){ setSyncStatus('','not connected'); return; }
+  setSyncStatus('saving','saving...');
+  const body = JSON.stringify({contacts});
+  try{
+    let res;
+    if(gistId){
+      res = await fetch(`https://api.github.com/gists/${gistId}`,{
+        method:'PATCH',
+        headers:{'Authorization':'token '+ghToken,'Content-Type':'application/json'},
+        body: JSON.stringify({files:{'outreach-tracker.json':{content:body}}})
+      });
+    } else {
+      res = await fetch('https://api.github.com/gists',{
+        method:'POST',
+        headers:{'Authorization':'token '+ghToken,'Content-Type':'application/json'},
+        body: JSON.stringify({description:'Outreach Tracker Data',public:false,files:{'outreach-tracker.json':{content:body}}})
+      });
+    }
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data = await res.json();
+    gistId = data.id;
+    lsSet('outreach-gist-id', gistId);
+    setSyncStatus('ok','synced '+new Date().toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'}));
+  }catch(e){
+    setSyncStatus('err','sync failed — check token');
+  }
+}
+
+async function syncFromGist(){
+  if(!ghToken || !gistId) return;
+  setSyncStatus('saving','loading...');
+  try{
+    const res = await fetch(`https://api.github.com/gists/${gistId}`,{
+      headers:{'Authorization':'token '+ghToken}
+    });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data = await res.json();
+    const content = data.files?.['outreach-tracker.json']?.content;
+    if(content){
+      const parsed = JSON.parse(content);
+      contacts = parsed.contacts || [];
+      saveLocal();
+      render();
+      setSyncStatus('ok','loaded from gist');
+    }
+  }catch(e){
+    setSyncStatus('err','load failed');
+  }
+}
+
+function scheduleSave(){
+  saveLocal();
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(syncToGist, 1500);
+}
+
+async function syncNow(){
+  if(gistId) await syncFromGist();
+  else await syncToGist();
+}
+
+function saveToken(){
+  ghToken = document.getElementById('token-inp').value.trim();
+  lsSet('outreach-gh-token', ghToken);
+  if(ghToken) syncToGist();
+  else setSyncStatus('','token removed');
+}
+
+function exportData(){
+  const blob = new Blob([JSON.stringify({contacts},null,2)],{type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'outreach-backup.json'; a.click();
+}
+
+function importData(){
+  const inp = document.createElement('input'); inp.type='file'; inp.accept='.json';
+  inp.onchange = e => {
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try{
+        const data = JSON.parse(ev.target.result);
+        contacts = data.contacts || data || [];
+        scheduleSave(); render(); alert('Imported '+contacts.length+' contacts.');
+      }catch(ex){ alert('Invalid JSON file.'); }
+    };
+    reader.readAsText(file);
+  };
+  inp.click();
+}
+
+function clearAll(){
+  if(!confirm('Delete all local contact data? (Gist data is not affected)')) return;
+  contacts = []; saveLocal(); render();
+}
+
+// ═══════════════════════════════════════════════
+//  CONTACTS
+// ═══════════════════════════════════════════════
+function initials(name){
+  return name.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase()||'??';
+}
+
+function addContact(){
+  const name    = document.getElementById('inp-name').value.trim();
+  const role    = document.getElementById('inp-role').value.trim();
+  const company = document.getElementById('inp-company').value.trim();
+  const type    = document.getElementById('inp-type').value;
+  const li      = document.getElementById('inp-li').value.trim();
+  if(!name){ document.getElementById('inp-name').focus(); return; }
+  const id = Date.now();
+  contacts.unshift({
+    id, name, role, company, type, li,
+    stage:'connected', note:'',
+    date: new Date().toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'2-digit'})
+  });
+  ['inp-name','inp-role','inp-company','inp-li'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('inp-name').focus();
+  scheduleSave(); render();
+  openCards.add(id);
+  render();
+}
+
+function setStage(id, stage){
+  const c = contacts.find(x=>x.id===id);
+  if(c){ c.stage=stage; scheduleSave(); render(); }
+}
+
+function deleteContact(id){
+  if(!confirm('Remove this contact?')) return;
+  contacts = contacts.filter(x=>x.id!==id);
+  openCards.delete(id);
+  scheduleSave(); render();
+}
+
+function updateNote(id, val){
+  const c = contacts.find(x=>x.id===id);
+  if(c){ c.note=val; scheduleSave(); }
+}
+
+function updateField(id, field, val){
+  const c = contacts.find(x=>x.id===id);
+  if(c){ c[field]=val; scheduleSave(); }
+}
+
+function toggleCard(id){
+  if(openCards.has(id)) openCards.delete(id);
+  else openCards.add(id);
+  render();
+}
+
+function setFilter(btn, f){
+  activeFilter = f;
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function autoResize(el){
+  el.style.height='auto'; el.style.height=el.scrollHeight+'px';
+}
+
+function stageIndex(key){ return STAGES.findIndex(s=>s.key===key); }
+
+// ═══════════════════════════════════════════════
+//  RENDER TRACKER
+// ═══════════════════════════════════════════════
+function render(){
+  const total    = contacts.length;
+  const accepted = contacts.filter(c=>stageIndex(c.stage)>=1).length;
+  const replied  = contacts.filter(c=>stageIndex(c.stage)>=3).length;
+  const trident  = contacts.filter(c=>stageIndex(c.stage)>=5).length;
+  const interview= contacts.filter(c=>c.stage==='interview').length;
+
+  document.getElementById('stats').innerHTML = `
+    <div class="stat-card"><div class="stat-num">${total}</div><div class="stat-lbl">Total</div><div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div></div>
+    <div class="stat-card"><div class="stat-num" style="color:#1a4a80">${accepted}</div><div class="stat-lbl">Accepted</div><div class="progress-bar"><div class="progress-fill" style="width:${total?Math.round(accepted/total*100):0}%;background:#4a8fd4"></div></div></div>
+    <div class="stat-card"><div class="stat-num" style="color:#0d5c35">${replied}</div><div class="stat-lbl">Replied</div><div class="progress-bar"><div class="progress-fill" style="width:${total?Math.round(replied/total*100):0}%;background:#22a362"></div></div></div>
+    <div class="stat-card"><div class="stat-num" style="color:#3d1a80">${trident}</div><div class="stat-lbl">Trident</div><div class="progress-bar"><div class="progress-fill" style="width:${total?Math.round(trident/total*100):0}%;background:#7c48d4"></div></div></div>
+    <div class="stat-card"><div class="stat-num" style="color:#0d5c35;font-size:30px">${interview}</div><div class="stat-lbl">Interviews</div><div class="progress-bar"><div class="progress-fill" style="width:${total?Math.round(interview/total*100):0}%"></div></div></div>
+  `;
+
+  const q = (document.getElementById('search-inp')?.value||'').toLowerCase().trim();
+  let filtered = activeFilter==='all' ? contacts : contacts.filter(c=>c.stage===activeFilter);
+  if(q) filtered = filtered.filter(c=>
+    c.name.toLowerCase().includes(q) ||
+    (c.company||'').toLowerCase().includes(q) ||
+    (c.role||'').toLowerCase().includes(q) ||
+    (c.note||'').toLowerCase().includes(q)
+  );
+
+  const list = document.getElementById('list');
+  if(!filtered.length){
+    list.innerHTML = `<div class="empty-state">${contacts.length===0?'no contacts yet — add your first outreach above':q?'no results for "'+q+'"':'no contacts in this stage'}</div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(c => {
+    const tm = TYPE_META[c.type]||TYPE_META.hiring;
+    const stage = STAGES.find(s=>s.key===c.stage)||STAGES[0];
+    const isOpen = openCards.has(c.id);
+    const stageBtns = STAGES.map(s=>`
+      <button class="sbtn${c.stage===s.key?' active':''}"
+        style="${c.stage===s.key?`background:${s.bg};color:${s.txt};border-color:transparent`:''}"
+        onclick="event.stopPropagation();setStage(${c.id},'${s.key}')">
+        <span class="dot" style="background:${s.dot}"></span>${s.label}
+      </button>`).join('');
+    const liLink = c.li ? `<a href="${encodeURI(c.li)}" target="_blank" onclick="event.stopPropagation()">↗ linkedin</a>` : '';
+    const chevron = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" style="transform:rotate(${isOpen?'90':'0'}deg);transition:transform .15s;flex-shrink:0;opacity:.4"><path d="M5 3l4 4-4 4"/></svg>`;
+
+    return `<div class="contact-card" id="card-${c.id}">
+      <div class="card-main" onclick="toggleCard(${c.id})">
+        <div class="avatar" style="background:${tm.bg};color:${tm.txt}">${initials(c.name)}</div>
+        <div class="card-info">
+          <div class="card-name">${escHtml(c.name)} ${liLink}
+            <span class="type-tag" style="background:${tm.bg};color:${tm.txt}">${tm.label}</span>
+          </div>
+          <div class="card-sub">${escHtml([c.role,c.company].filter(Boolean).join(' · '))||'—'}</div>
+        </div>
+        <div class="card-right">
+          <span class="date-txt">${c.date}</span>
+          <span class="status-badge" style="background:${stage.bg};color:${stage.txt}">${stage.label}</span>
+          ${chevron}
+        </div>
+      </div>
+      <div class="card-body ${isOpen?'open':''}">
+        <div class="card-stages">
+          <span class="stage-lbl">Stage</span>
+          ${stageBtns}
+          <button class="del-btn" onclick="deleteContact(${c.id})">remove</button>
+        </div>
+        <div class="card-edit">
+          <div class="field"><label>Name</label><input value="${escAttr(c.name)}" onchange="updateField(${c.id},'name',this.value);render()"></div>
+          <div class="field"><label>Role</label><input value="${escAttr(c.role||'')}" onchange="updateField(${c.id},'role',this.value)"></div>
+          <div class="field"><label>Company</label><input value="${escAttr(c.company||'')}" onchange="updateField(${c.id},'company',this.value)"></div>
+          <div class="field"><label>Type</label>
+            <select onchange="updateField(${c.id},'type',this.value);render()">
+              ${['hiring','recruiter','engineer','decision'].map(t=>`<option value="${t}"${c.type===t?' selected':''}>${TYPE_META[t].label}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field field-full"><label>LinkedIn URL</label><input value="${escAttr(c.li||'')}" type="url" onchange="updateField(${c.id},'li',this.value)"></div>
+        </div>
+        <div class="card-note-row">
+          <textarea class="note-inp" rows="1" placeholder="Notes..."
+            oninput="updateNote(${c.id},this.value);autoResize(this)"
+            onfocus="autoResize(this)">${escHtml(c.note||'')}</textarea>
+          <button class="card-templates-btn" onclick="openTplModal(${c.id})">templates ↗</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.querySelectorAll('.note-inp').forEach(el=>{ if(el.value) autoResize(el); });
+}
+
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escAttr(s){ return String(s).replace(/"/g,'&quot;'); }
+
+// ═══════════════════════════════════════════════
+//  TEMPLATES PAGE
+// ═══════════════════════════════════════════════
+function renderTplCards(key){
+  const content = document.getElementById('tpl-content');
+  if(key==='overview'){ content.innerHTML=`<div class="tpl-page active">${OVERVIEW_HTML}</div>`; return; }
+  const tpl = TEMPLATES[key]; if(!tpl) return;
+  content.innerHTML = `<div class="tpl-page active">${tpl.steps.map(s=>renderTplCard(s)).join('')}</div>`;
+}
+
+function renderTplCard(s){
+  const chars = s.msg.length;
+  return `<div class="tpl-card">
+    <div class="tpl-card-head">
+      <span class="tpl-pill ${s.pill}">${s.label}</span>
+      ${s.note?`<p>${s.note}</p>`:''}
+      ${s.quote?`</div><div class="tpl-quote">${escHtml(s.quote)}</div><div class="tpl-card-head" style="padding-top:0">`:''}
+    </div>
+    <div class="msg-box${s.boxClass?' '+s.boxClass:''}">${escHtml(s.msg)}</div>
+    <div class="tpl-actions">
+      <button class="copy-btn" onclick="copyTpl(this,'${escAttr(s.msg)}')">copy</button>
+      ${s.charLimit?`<span class="char-count">${chars} / 300 chars</span>`:`<span class="char-count">${chars} chars</span>`}
+    </div>
+  </div>`;
+}
+
+function showTpl(key, btn){
+  document.querySelectorAll('.tpl-nav-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTplCards(key);
+}
+
+function copyTpl(btn, msg){
+  navigator.clipboard.writeText(msg).then(()=>{
+    btn.textContent='copied!';
+    setTimeout(()=>btn.textContent='copy',2000);
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  TEMPLATE MINI-MODAL (from card)
+// ═══════════════════════════════════════════════
+function openTplModal(contactId){
+  const c = contacts.find(x=>x.id===contactId);
+  const type = c?.type||'hiring';
+  const tpl = TEMPLATES[type];
+  document.getElementById('tpl-modal-title').textContent = 'Templates — '+(c?.name||'');
+
+  const tabs = ['step1','step2','loop1','loop2','loop3','tri1','tri2','tri3'];
+  const tabLabels = {step1:'Step 1',step2:'Step 2',loop1:'Loop (apply)',loop2:'Loop (exp.)',loop3:'Loop (wrong)',tri1:'Trident 1',tri2:'Trident 2',tri3:'Trident 3'};
+
+  document.getElementById('tpl-modal-tabs').innerHTML = tabs.map((t,i)=>`
+    <button class="tpl-modal-tab${i===0?' active':''}" onclick="switchModalTab(this,'mtpl-${t}')">${tabLabels[t]}</button>
+  `).join('');
+
+  document.getElementById('tpl-modal-body').innerHTML = tabs.map((t,i)=>{
+    const step = tpl?.steps.find(s=>s.key===t);
+    if(!step) return '';
+    return `<div class="tpl-modal-section${i===0?' active':''}" id="mtpl-${t}">
+      <div class="msg-box${step.boxClass?' '+step.boxClass:''}">${escHtml(step.msg)}</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
+        <button class="copy-btn" onclick="copyTpl(this,'${escAttr(step.msg)}')">copy</button>
+        <span class="char-count">${step.msg.length} chars${step.charLimit?' / 300':''}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('tpl-modal').classList.add('open');
+}
+
+function switchModalTab(btn, sectionId){
+  document.querySelectorAll('.tpl-modal-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tpl-modal-section').forEach(s=>s.classList.remove('active'));
+  btn.classList.add('active');
+  const sec = document.getElementById(sectionId);
+  if(sec) sec.classList.add('active');
+}
+
+function closeTplModal(){
+  document.getElementById('tpl-modal').classList.remove('open');
+}
+
+// ═══════════════════════════════════════════════
+//  PAGE NAV
+// ═══════════════════════════════════════════════
+function showPage(key, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+key).classList.add('active');
+  btn.classList.add('active');
+  if(key==='templates') renderTplCards('overview');
+  if(key==='settings'){
+    document.getElementById('token-inp').value = ghToken||'';
+    updateSettingsStatus();
+  }
+}
+
+function openSettings(){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-settings').classList.add('active');
+  document.querySelectorAll('.nav-tab')[2].classList.add('active');
+  document.getElementById('token-inp').value = ghToken||'';
+  updateSettingsStatus();
+}
+
+function updateSettingsStatus(){
+  const dot = document.getElementById('sync-dot');
+  const msg = document.getElementById('sync-msg');
+  if(!ghToken){ if(dot) dot.className='status-dot'; if(msg) msg.textContent='No token saved'; return; }
+  if(dot) dot.className='status-dot ok';
+  if(msg) msg.textContent = gistId ? 'Connected — Gist: '+gistId.slice(0,8)+'...' : 'Token saved — will create Gist on next save';
+}
+
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+document.addEventListener('keydown', e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key==='Enter'){ addContact(); return; }
+  if(e.key==='/'&&document.activeElement.tagName!=='INPUT'&&document.activeElement.tagName!=='TEXTAREA'){
+    e.preventDefault();
+    const s = document.getElementById('search-inp');
+    if(s){ s.focus(); showPage('tracker', document.querySelectorAll('.nav-tab')[0]); }
+  }
+  if(e.key==='Escape'){
+    const s = document.getElementById('search-inp');
+    if(s&&document.activeElement===s){ s.value=''; render(); s.blur(); }
+    closeTplModal();
+  }
+});
+
+document.getElementById('tpl-modal').addEventListener('click',e=>{
+  if(e.target===document.getElementById('tpl-modal')) closeTplModal();
+});
+
+loadLocal();
+render();
+renderTplCards('overview');
+updateSettingsStatus();
+if(ghToken && gistId) syncFromGist();
+else if(ghToken) setSyncStatus('saving','connecting...');
+</script>
+</body>
+</html>
